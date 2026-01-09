@@ -83,6 +83,11 @@ template <typename T> std::vector<double> toDoubles(const std::vector<T> &values
 
 } // namespace
 
+template <AllowedType T> std::string toPercent(T part, T total) {
+    int percent = std::round(part * 100.0 / total);
+    return std::to_string(percent) + "%";
+}
+
 template <AllowedType T> T minValue(const std::vector<T> &values) {
     if (values.empty())
         throw std::invalid_argument("minValue: empty input");
@@ -127,6 +132,14 @@ template <AllowedType T> double percentile(const std::vector<T> &values, double 
 
     const double t = pos - static_cast<double>(i);
     return a + t * (b - a);
+}
+
+template <AllowedType T> double sum(const std::vector<T> &values) {
+    double total_sum = 0.0;
+    for (const T &value: values) {
+        total_sum += value;
+    }
+    return total_sum;
 }
 
 template <AllowedType T> double median(const std::vector<T> &values) { return percentile(values, 50.0); }
@@ -267,6 +280,12 @@ std::string summaryStats(const std::vector<double> &values, int decimals) {
 }
 
 // ---- Explicit instantiations (only allowed types) ----
+template std::string toPercent<int>(int part, int total);
+template std::string toPercent<float>(float part, double total);
+template std::string toPercent<double>(double part, double total);
+template std::string toPercent<std::size_t>(std::size_t part, std::size_t total);
+template std::string toPercent<std::uint8_t>(std::uint8_t part, std::uint8_t total);
+
 template int minValue<int>(const std::vector<int> &);
 template float minValue<float>(const std::vector<float> &);
 template double minValue<double>(const std::vector<double> &);
@@ -278,6 +297,12 @@ template float maxValue<float>(const std::vector<float> &);
 template double maxValue<double>(const std::vector<double> &);
 template std::size_t maxValue<std::size_t>(const std::vector<std::size_t> &);
 template std::uint8_t maxValue<std::uint8_t>(const std::vector<std::uint8_t> &);
+
+template double sum<int>(const std::vector<int> &);
+template double sum<float>(const std::vector<float> &);
+template double sum<double>(const std::vector<double> &);
+template double sum<std::size_t>(const std::vector<std::size_t> &);
+template double sum<std::uint8_t>(const std::vector<std::uint8_t> &);
 
 template double median<int>(const std::vector<int> &);
 template double median<float>(const std::vector<float> &);

@@ -12,10 +12,14 @@ template <typename T>
 concept AllowedType = std::is_same_v<T, int> || std::is_same_v<T, float> || std::is_same_v<T, double> ||
                       std::is_same_v<T, std::size_t> || std::is_same_v<T, std::uint8_t>;
 
+template <typename T> std::string toPercent(T part, T total);
+
 // Throws std::invalid_argument if values is empty.
 template <AllowedType T> T minValue(const std::vector<T> &values);
 
 template <AllowedType T> T maxValue(const std::vector<T> &values);
+
+template <AllowedType T> double sum(const std::vector<T> &values);
 
 // Median / percentile return double (because interpolation).
 // Throws std::invalid_argument if values is empty.
