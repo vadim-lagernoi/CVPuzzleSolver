@@ -21,8 +21,8 @@ inline std::size_t linearIndex(int x, int y, int w) noexcept {
 
 } // namespace
 
-std::tuple<std::vector<point2i>, std::vector<image32f>, std::vector<image8u>> splitObjects(
-    const image32f &image, const image8u &objectsMask)
+std::tuple<std::vector<point2i>, std::vector<image8u>, std::vector<image8u>> splitObjects(
+    const image8u &image, const image8u &objectsMask)
 {
     rassert(image.width() == objectsMask.width(), 980123741);
     rassert(image.height() == objectsMask.height(), 980123742);
@@ -90,7 +90,7 @@ std::tuple<std::vector<point2i>, std::vector<image32f>, std::vector<image8u>> sp
     });
 
     std::vector<point2i> offsets;
-    std::vector<image32f> partsImages;
+    std::vector<image8u> partsImages;
     std::vector<image8u> partsMasks;
 
     offsets.reserve(roots.size());
@@ -106,7 +106,7 @@ std::tuple<std::vector<point2i>, std::vector<image32f>, std::vector<image8u>> sp
         point2i offset = bb.min;
         offsets.push_back(offset);
 
-        image32f partImage(outW, outH, 1);
+        image8u partImage(outW, outH, image.channels());
         image8u partMask(outW, outH, 1);
 
         for (int yy = 0; yy < outH; ++yy) {
@@ -114,7 +114,9 @@ std::tuple<std::vector<point2i>, std::vector<image32f>, std::vector<image8u>> sp
             for (int xx = 0; xx < outW; ++xx) {
                 const int srcX = offset.x + xx;
 
-                partImage(yy, xx) = image(srcY, srcX);
+                for (int c = 0; c < image.channels(); ++c) {
+                    partImage(yy, xx, c) = image(srcY, srcX, c);
+                }
 
                 const std::size_t sid = linearIndex(srcX, srcY, w);
                 const bool belongs = (objectsMask(srcY, srcX) == kObject) && (rootOfPixel[sid] == r);

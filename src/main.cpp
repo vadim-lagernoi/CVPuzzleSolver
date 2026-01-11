@@ -93,7 +93,7 @@ int main() {
             debug_io::dump_image(debug_dir + "06_is_foreground_dilated_eroded_eroded_dilated.png", dilated_eroded_eroded_dilated_mask);
 
             is_foreground_mask = dilated_eroded_eroded_dilated_mask;
-            auto [objOffsets, objImages, objMasks] = splitObjects(grayscale, is_foreground_mask);
+            auto [objOffsets, objImages, objMasks] = splitObjects(image, is_foreground_mask);
             int objects_count = objImages.size();
             std::cout << objects_count << " objects extracted" << std::endl;
             rassert(objects_count == 6 || objects_count == 8, 237189371298, objects_count);
