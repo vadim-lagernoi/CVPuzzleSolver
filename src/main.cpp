@@ -91,16 +91,22 @@ int main() {
             t.restart();
             // DONE: сделаем маску более гладкой и точной через Морфологию
             // DONE: сначала попробуем dilation + erosion, все ли хорошо поулчилось? нет ли выбросов?
-            int strength = 3;
+            int strength = 6;
 
             const bool with_openmp = true;
             image8u dilated_mask = morphology::dilate(is_foreground_mask, strength, with_openmp);
             image8u dilated_eroded_mask = morphology::erode(dilated_mask, strength, with_openmp);
             image8u dilated_eroded_eroded_mask = morphology::erode(dilated_eroded_mask, strength, with_openmp);
             image8u dilated_eroded_eroded_dilated_mask = morphology::dilate(dilated_eroded_eroded_mask, strength, with_openmp);
+
+            // добавляем эрозию на один-два шага чтобы при взятии цветов для описания сторон - не брать случайно черные цвета с фона
+            // эта проблема особенно ярко заметна на белых сторонах - там много черных вкраплений
+            // и хорошо видно что график вместо того чтобы быть в высоких около-255 значениях - часто скакал вниз
+            dilated_eroded_eroded_dilated_mask = morphology::erode(dilated_eroded_eroded_dilated_mask, 2, with_openmp);
+
             std::cout << "full morphology in " << t.elapsed() << " sec" << std::endl;
 
-            // TODO 1 посмотрите на RGB графики тех сторон у которых нет и не может быть соседей, то есть у белых полос
+            // DONE 1 посмотрите на RGB графики тех сторон у которых нет и не может быть соседей, то есть у белых полос
             // разумно ли они выглядят? с чем это может быть связано? как это исправить?
             debug_io::dump_image(debug_dir + "03_is_foreground_dilated.png", dilated_mask);
             debug_io::dump_image(debug_dir + "04_is_foreground_dilated_eroded.png", dilated_eroded_mask);
@@ -231,31 +237,31 @@ int main() {
                             // сравнить их пиксель за пикселем, каждый из этих списков пикселей стороны - по часовой стрелке
                             // значит они как борящиеся друг против друга шестеренки трутся и расходятся в противоположных направлениях
                             // поэтому нужно их сориентировать инвертировав порядок одного из них
-                            // std::reverse(pixelsB.begin(), pixelsB.end()); // да, эту строку нужно раскомментировать
+                            std::reverse(pixelsB.begin(), pixelsB.end()); // да, эту строку нужно раскомментировать
                             // извлекаем цвета пикселей из картинки объекта A
                             const std::vector<color8u> colorsB = extractColors(objImages[objB], pixelsB);
                             rassert(channels == objImages[objB].channels(), 34712839741231);
 
                             // чтобы удобно было сравнивать - нужно чтобы эти две стороны были выравнены по длине
                             int n = std::min(colorsA.size(), colorsB.size());
-                            // TODO 2 посмотрите на графики и подумайте, может имеет смысл как-то воздействовать на снятые с границы цвета?
+                            // DONE 2 посмотрите на графики и подумайте, может имеет смысл как-то воздействовать на снятые с границы цвета?
                             // например сгладить? если решите попробовать - воспользуйтесь готовой функцией blur(std::vector<color8u> colors, float strength)
-                            std::vector<color8u> a = downsample(colorsA, n);
-                            std::vector<color8u> b = downsample(colorsB, n);
+                            float blur_strength = 2.0f;
+                            std::vector<color8u> a = downsample(blur(colorsA, blur_strength), n);
+                            std::vector<color8u> b = downsample(blur(colorsB, blur_strength), n);
                             rassert(a.size() == n && b.size() == n, 2378192321);
 
                             // теперь давайте в каждой паре пикселей оценим насколько сильно они отличаются
                             std::vector<float> differences(n);
-                            FastRandom r(2391); // просто генератор случайных чисел
                             for (int i = 0; i < n; ++i) {
                                 float d = 0;
                                 color8u colA = a[i];
                                 color8u colB = b[i];
-                                // TODO 3 реализуйте какую-то метрику сравнивающую насколько эти два цвета colA и colB отличаются
+                                // DONE 3 реализуйте какую-то метрику сравнивающую насколько эти два цвета colA и colB отличаются
                                 for (int c = 0; c < channels; ++c) {
                                     uint8_t colAChannelIntensity = colA(c);
                                     uint8_t colBChannelIntensity = colB(c);
-                                    d += r.nextInt(0, 20); // сейчас я ссуммирую случайные числа, просто чтобы что-то было видно на графике
+                                    d += std::abs((int) colAChannelIntensity - colBChannelIntensity);
                                 }
                                 differences[i] = d;
                             }
@@ -263,9 +269,9 @@ int main() {
                                 rassert(differences[i] >= 0.0f, 32423415214, differences[i]);
                             }
 
-                            // TODO 4 и наконец финальный вердикт - насколько сильно отличаются эти две стороны? например это может быть медиана попиксельных разниц
+                            // DONE 4 и наконец финальный вердикт - насколько сильно отличаются эти две стороны? например это может быть медиана попиксельных разниц
                             // (не забудьте про stats::median, stats:sum, stats::percentile)
-                            float total_difference = differences[0]; // это совсем простой вариант чтобы код просто компилировался - тут мы берем разницу первого попавшегося одного пикселя
+                            float total_difference = stats::median(differences); // это совсем простой вариант чтобы код просто компилировался - тут мы берем разницу первого попавшегося одного пикселя
 
                             float previous_best = objMatchedSides[objA][sideA].differenceBest;
                             if (previous_best == -1 || total_difference <= previous_best) {
